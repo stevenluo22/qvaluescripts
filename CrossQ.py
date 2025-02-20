@@ -77,8 +77,8 @@ def run(args):
     for a in range(0, len(filelist)):
         cross_q_val_table[a] = {}
         for b in range(0, len(filelist)):
-            #cross_q_val_table[a][b] = calculateQ(filelist[a], filelist[b])
-            print(filelist[a], filelist[b])
+            cross_q_val_table[a][b] = calculateQ(filelist[a], filelist[b])
+            #print(filelist[a], filelist[b])
             
     # Define the file name
     file_name = args.outputCSV
