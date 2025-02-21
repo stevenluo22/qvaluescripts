@@ -130,7 +130,7 @@ def run(args):
             row = [i] + [cross_q_val_table[i][j] for j in range(0, len(filelist))]
             writer.writerow(row)
 
-    print("cross_q_val_table saved to:", file_name)
+    print("Cross Q value csv data table saved to:", file_name)
 
     # Define custom colormap going from red to yellow to green
     colors = [(1, 0, 0), (1, 1, 0), (0, 1, 0)]  # Red to Yellow to Green
@@ -155,6 +155,9 @@ def run(args):
         for j in range(len(cross_q_val_table)):
             ax.text(j + 0.5, i + 0.5, '{:.2f}'.format(data[i, j]), ha='center', va='center', color='black', fontsize=args.fontSize)
     plt.savefig(file_name)
+
+    print("Cross Q plot saved to:", file_name)
+    print("Cross Q analysis script completed.")
 
 def main(args=None):
     parser = argparse.ArgumentParser(
