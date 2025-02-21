@@ -40,7 +40,7 @@ def CrossQ(coords_a, coords_b, name_ids, chain_ids, residue_ids, printCrossQ=Fal
                 Distance_b = Distance(coords_b[atom_i], coords_b[atom_j])
                 TotalQ = TotalQ + TermQ(Distance_a, Distance_b, residue_ids[atom_i], residue_ids[atom_j], printTermQ)
     if printCrossQ:
-        print(f"Amongst {count_eligible_contact}, we have a crossQ value of {TotalQ/count_eligible_contact}")
+        print(f"Amongst {count_eligible_contact} contacts, we have a crossQ value of {TotalQ/count_eligible_contact}.")
     return TotalQ/count_eligible_contact
 
 def calculateQ(pathtoPDB1, pathtoPDB2, printCrossQ=False, printTermQ=False):
