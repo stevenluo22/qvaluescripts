@@ -53,7 +53,7 @@ def run(args):
     if args.additionalPrint:
         print(f"Finished. Saved to {output}.")
 
-def main():
+def main(args=None):
     parser = argparse.ArgumentParser(
         description="Extracting Last Frame from movie.pdb")
     parser.add_argument("-d", "--dir", help="directory to run the script", default="./", type=str)
