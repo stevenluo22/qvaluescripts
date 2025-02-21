@@ -44,7 +44,7 @@ def run(args):
 
     # Access the colorbar and set its label
     cbar = q_val_map.ax_heatmap.collections[0].colorbar
-    cbar.set_label('Mutual Q value', fontsize=args.fontSize)
+    cbar.set_label('Mutual Q value', fontsize=15)
 
     # Axes
     ax = q_val_map.ax_heatmap
@@ -55,7 +55,7 @@ def run(args):
     # Loop through the data array and annotate each cell with its value
     for i in range(len(cross_q_val_table)):
         for j in range(len(cross_q_val_table)):
-            ax.text(j + 0.5, i + 0.5, '{:.2f}'.format(data[i, j]), ha='center', va='center', color='black', fontsize=10)
+            ax.text(j + 0.5, i + 0.5, '{:.2f}'.format(data[i, j]), ha='center', va='center', color='black', fontsize=args.fontSize)
     plt.savefig(file_name)
 
 def main(args=None):

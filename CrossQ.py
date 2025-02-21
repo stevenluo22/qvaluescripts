@@ -110,7 +110,7 @@ def run(args):
 
     # Access the colorbar and set its label
     cbar = q_val_map.ax_heatmap.collections[0].colorbar
-    cbar.set_label('Mutual Q value', fontsize=10)
+    cbar.set_label('Mutual Q value', fontsize=15)
 
     # Axes
     ax = q_val_map.ax_heatmap
