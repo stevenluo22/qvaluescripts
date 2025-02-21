@@ -18,38 +18,32 @@ def Distance(Vec_1, Vec_2):
     distance = np.sqrt(xcont + ycont + zcont)
     return distance
 
-def TermQ(r_i, r_j, residue_i, residue_j):
+def TermQ(r_i, r_j, residue_i, residue_j, printTermQ=False):
     numerator = (r_i - r_j)**2/100
     Sigma_ij = 0.1*(abs(residue_i-residue_j)**0.15)
     if Sigma_ij == 0:
         return 0
     termQ = np.exp(-numerator/(2*Sigma_ij**2))
+    if printTermQ:
+        print(f"Between residues {residue_i} and {residue_j}, the term Q is {termQ}.")
     return termQ
 
-def CrossQ(coords_a, coords_b, name_ids, chain_ids, residue_ids):
+def CrossQ(coords_a, coords_b, name_ids, chain_ids, residue_ids, printCrossQ=False, printTermQ=False):
     Contact_Cutoff = 3
     count_eligible_contact = 0
     TotalQ = 0
     for atom_i in range(len(coords_a)):
         for atom_j in range(len(coords_b)):
-            if(name_ids[atom_i] == 'CA' and name_ids[atom_j] == 'CA'):
-                if(chain_ids[atom_i] != chain_ids[atom_j]):
-                    count_eligible_contact += 1
-                    Distance_a = Distance(coords_a[atom_i], coords_a[atom_j])
-                    Distance_b = Distance(coords_b[atom_i], coords_b[atom_j])
-                    TotalQ = TotalQ + TermQ(Distance_a, Distance_b, residue_ids[atom_i], residue_ids[atom_j])
-                    #print(TermQ(Distance_a, Distance_b, residue_ids[atom_i], residue_ids[atom_j]), Distance_a, Distance_b, residue_ids[atom_i], residue_ids[atom_j])
-                elif(abs(residue_ids[atom_i] - residue_ids[atom_j]) >= Contact_Cutoff):
-                    count_eligible_contact += 1
-                    Distance_a = Distance(coords_a[atom_i], coords_a[atom_j])
-                    Distance_b = Distance(coords_b[atom_i], coords_b[atom_j])
-                    TotalQ = TotalQ + TermQ(Distance_a, Distance_b, residue_ids[atom_i], residue_ids[atom_j])
-                    #print(TermQ(Distance_a, Distance_b, residue_ids[atom_i], residue_ids[atom_j]), Distance_a, Distance_b, residue_ids[atom_i], residue_ids[atom_j])
-    #print(count_eligible_contact)
+            if(abs(residue_ids[atom_i] - residue_ids[atom_j]) >= Contact_Cutoff and chain_ids[atom_i] == chain_ids[atom_j]):
+                count_eligible_contact += 1
+                Distance_a = Distance(coords_a[atom_i], coords_a[atom_j])
+                Distance_b = Distance(coords_b[atom_i], coords_b[atom_j])
+                TotalQ = TotalQ + TermQ(Distance_a, Distance_b, residue_ids[atom_i], residue_ids[atom_j], printTermQ)
+    if printCrossQ:
+        print(f"Amongst {count_eligible_contact}, we have a crossQ value of {TotalQ/count_eligible_contact}")
     return TotalQ/count_eligible_contact
 
-def calculateQ(pathtoPDB1, pathtoPDB2):
-    # Load the first PDB file
+def calculateQ(pathtoPDB1, pathtoPDB2, printCrossQ=False, printTermQ=False):
     structure_1 = pr.parsePDB(pathtoPDB1)
 
     # Extract coordinates, residue names, and atom names for the first structure
@@ -57,7 +51,7 @@ def calculateQ(pathtoPDB1, pathtoPDB2):
     residues_1 = structure_1.getResnums()  # residue names
     atom_names_1 = structure_1.getNames()  # atom names
     chains_1 = structure_1.getChids()
-
+    
     # Repeat for the second PDB file
     structure_2 = pr.parsePDB(pathtoPDB2)
 
@@ -66,7 +60,48 @@ def calculateQ(pathtoPDB1, pathtoPDB2):
     atom_names_2 = structure_2.getNames()
     chains_2 = structure_2.getChids()
 
-    return CrossQ(coords_1, coords_2, atom_names_1, chains_1, residues_1)
+    # Define a set of DNA residue names    
+    # Initialize new lists for the filtered data
+    CA_coords_1 = []
+    CA_residues_1 = []
+    CA_atom_names_1 = []
+    CA_chains_1 = []
+    CA_indicies_1 = []
+
+    CA_coords_2 = []
+    CA_residues_2 = []
+    CA_atom_names_2 = []
+    CA_chains_2 = []
+    CA_indicies_2 = []
+
+    #1 based indexing to align with fragment memory notations
+    CA_index_1 = 1
+    CA_index_2 = 1
+    
+    # Loop through the indices and filter based on the condition
+    for i in range(len(atom_names_1)):
+        if atom_names_1[i] == "CA":
+            CA_coords_1.append(coords_1[i])
+            CA_residues_1.append(residues_1[i])
+            CA_atom_names_1.append(atom_names_1[i])
+            CA_chains_1.append(chains_1[i])
+            CA_indicies_1.append(CA_index_1)
+            CA_index_1 += 1
+    for i in range(len(atom_names_2)):
+        if atom_names_2[i] == "CA":
+            CA_coords_2.append(coords_2[i])
+            CA_residues_2.append(residues_2[i])
+            CA_atom_names_2.append(atom_names_2[i])
+            CA_chains_2.append(chains_2[i])
+            CA_indicies_2.append(CA_index_2)
+            CA_index_2 += 1
+
+    if (CA_index_1 != CA_index_2):
+        print("Warning! Both files do not have the same number of atoms for Q values! Q Values may not be accurate")
+
+    if printCrossQ:
+        print(f"Calculating Cross Q values between {pathtoPDB1} and {pathtoPDB2}")
+    return CrossQ(CA_coords_1, CA_coords_2, CA_atom_names_1, CA_chains_1, CA_residues_1, printCrossQ, printTermQ)
 
 def run(args):
     spec = importlib.util.spec_from_file_location("fileList", args.pythonlist)
@@ -77,7 +112,7 @@ def run(args):
     for a in range(0, len(filelist)):
         cross_q_val_table[a] = {}
         for b in range(0, len(filelist)):
-            cross_q_val_table[a][b] = calculateQ(filelist[a], filelist[b])
+            cross_q_val_table[a][b] = calculateQ(filelist[a], filelist[b], args.printCrossQ, args.printTermQ)
             #print(filelist[a], filelist[b])
             
     # Define the file name
@@ -134,6 +169,8 @@ def main(args=None):
     parser.add_argument("-c", "--outputCSV", help="Name of csv output data file", default="CrossQ.csv", type=str)
     parser.add_argument("-o", "--outputplot", help="Name of output plot", default="CrossQ.jpg", type=str)
     parser.add_argument("-f", "--fontSize", help="font size", default=13, type=float)
+    parser.add_argument("--printTermQ", action="store_true", help="additional print each term Q", default=False)
+    parser.add_argument("--printCrossQ", action="store_true", help="additional print cross Q", default=False)
 
     if args is None:
         args = parser.parse_args()
