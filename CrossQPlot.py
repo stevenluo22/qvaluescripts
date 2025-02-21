@@ -63,7 +63,7 @@ def main(args=None):
         description="Draw plots from cross Q data csv")
     parser.add_argument("-i", "--inputCSV", help="csv file with list of pdb files paths", default="CrossQ.csv", type=str)
     parser.add_argument("-o", "--outputplot", help="Name of output plot", default="CrossQ.jpg", type=str)
-    parser.add_argument("-f", "--fontSize", help="font size", default=10, type=float)
+    parser.add_argument("-f", "--fontSize", help="font size", default=13, type=float)
 
     if args is None:
         args = parser.parse_args()
