@@ -118,9 +118,6 @@ def run(args):
     # Define the file name
     file_name = args.outputCSV
 
-    print(file_name)
-    print(1/0)
-
     # Create a CSV writer object
     with open(file_name, mode='w', newline='') as file:
         writer = csv.writer(file)
