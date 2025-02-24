@@ -10,7 +10,7 @@ import csv
 
 def run(args):
     # Define the file name
-    args.inputCSV
+    file_name = args.inputCSV
 
     # Initialize the dictionary
     cross_q_val_table = {}
