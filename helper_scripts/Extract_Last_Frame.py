@@ -1,66 +1,96 @@
-from Bio import PDB
+import MDAnalysis as mda
 import argparse
+import os
 
-def extract_last_frame(pdb_file, output_file):
-    parser = PDB.PDBParser()
-    structure = parser.get_structure('pdb_structure', pdb_file)
+def extract_last_frame_mdanalysis(pdb_file, output_file):
+    u = mda.Universe(pdb_file)
+    with mda.Writer(output_file, multiframe=False) as w:
+        w.write(u.trajectory[-1])  # Directly access the last frame
 
-    last_model = None
-    frame = 0
-    for model in structure:
-        last_model = model
-        frame += 1
-        #print(f"frame = {frame}")
-    
-    if last_model is not None:
-        # Iterate over the structure and adjust atom numbers
-        atom_number_offset = 0
-        for chain in last_model:
-            for residue in chain:
-                for atom in residue:
-                    atom.set_serial_number(atom.get_serial_number() + atom_number_offset)
-            atom_number_offset += len(chain)
+def extract_last_frame_dcd(pdb_file, dcd_file, output_file):
+    u = mda.Universe(pdb_file, dcd_file)
+    u.trajectory[-1]  # Move to the last frame
+    u.atoms.write(output_file)  # Write the last frame with full topology
 
-        # Write the modified structure to the output file
-        io = PDB.PDBIO()
-        io.set_structure(last_model)
-        io.save(output_file)
-    else:
-        print("No models found in the structure.")
+def openmmReadToFrustration(pdb_file_path, fasta, output):
+    with open(pdb_file_path, 'r') as file:
+        pdb_lines = file.readlines()
 
-def fix_ter_lines(pdb_file, output_file):
-    with open(pdb_file, 'r') as f:
+    # Read lines and filter out the unwanted lines
+    with open(fasta, 'r') as f:
         lines = f.readlines()
-    #print(len(lines))
-    #ter_indices = [i for i, line in enumerate(lines) if line.startswith('TER')]
-    for index in range(len(lines) - 1):
-        #index = index + 1
-        # Replace atom number in the line
-        #print(lines[index].split()[1])
-        lines[index] = lines[index].replace(lines[index].split()[1], str(index + 1))
-    with open(output_file, 'w') as f:
-        f.writelines(lines)
 
-def run(args):
-    direc = args.dir
-    movie = f"{direc}/{args.movie}"
-    intermediate = f"{direc}/{args.intermediate}"
-    output = f"{direc}/{args.output}"
-    if args.additionalPrint:
-        print(f"Processing {movie}.")
-    extract_last_frame(movie, intermediate)
-    fix_ter_lines(intermediate, output)
-    if args.additionalPrint:
-        print(f"Finished. Saved to {output}.")
+    # Keep only lines that do not contain "CRYSTAL_STRUCTURE"
+    filtered_lines = [line for line in lines if "CRYSTAL_STRUCTURE" not in line]
+
+    # Concatenate the strings into one and remove '\n'
+    fasta_sequence = ''.join(line.strip() for line in filtered_lines)
+
+    # One-letter to three-letter amino acid code mapping
+    amino_acid_map = {
+        'A': 'ALA', 'C': 'CYS', 'D': 'ASP', 'E': 'GLU', 'F': 'PHE', 'G': 'GLY', 'H': 'HIS', 'I': 'ILE',
+        'K': 'LYS', 'L': 'LEU', 'M': 'MET', 'N': 'ASN', 'P': 'PRO', 'Q': 'GLN', 'R': 'ARG', 'S': 'SER',
+        'T': 'THR', 'V': 'VAL', 'W': 'TRP', 'Y': 'TYR'
+    }
+
+    # Define the residue number range to be replaced
+    residues_index = -1
+    previous_residue = None
+
+    # Replace non-standard residues in the specified range
+    modified_lines = []
+    for line in pdb_lines:
+        if line.startswith('HETATM') or line.startswith('ATOM'):
+            residue_num = int(line[22:26].strip())
+            modified_line = line.replace('HETATM', 'ATOM  ', 1)  # Replace HETATM with ATOM
+            if residue_num == previous_residue:
+                residue_name = line[17:20].strip()
+                if residue_name in ["NGP", "IPR", "IGL"]:
+                    one_letter_code = fasta_sequence[residues_index]
+                    standard_residue = amino_acid_map[one_letter_code]
+                    modified_line = line[:17] + standard_residue.ljust(3) + line[20:]
+                    modified_lines.append(modified_line)
+                else:
+                    modified_lines.append(line)
+            else:
+                residues_index += 1
+                previous_residue = residue_num
+                residue_name = line[17:20].strip()
+                if residue_name in ["NGP", "IPR", "IGL"]:
+                    one_letter_code = fasta_sequence[residues_index]
+                    standard_residue = amino_acid_map[one_letter_code]
+                    modified_line = line[:17] + standard_residue.ljust(3) + line[20:]
+                    modified_lines.append(modified_line)
+                else:
+                    modified_lines.append(line)
+        elif line.startswith('TER'):
+            modified_line = line.replace('NGP', standard_residue, 1)
+            modified_lines.append(modified_line)
+        else:
+            modified_lines.append(line)
+
+    with open(output, 'w') as output_file:
+        output_file.writelines(modified_lines)
+
+def run(args):        
+    if args.pdb and args.dcd:
+        extract_last_frame_dcd(args.pdb, args.dcd, args.intermediate)
+    elif args.movie:
+        extract_last_frame_mdanalysis(args.movie, args.intermediate)
+    openmmReadToFrustration(args.intermediate, args.fasta, args.output)
+    os.remove(args.intermediate)
 
 def main(args=None):
     parser = argparse.ArgumentParser(
         description="Extracting Last Frame from movie.pdb")
     parser.add_argument("-d", "--dir", help="directory to run the script", default="./", type=str)
     parser.add_argument("-m", "--movie", help="movie pdb file", default="movie.pdb", type=str)
-    parser.add_argument("-i", "--intermediate", help="intermediate pdb file", default="Last_Frame_Hold.pdb", type=str)
+    parser.add_argument("-b", "--pdb", help="template pdb file", default="crystal_structure-openmmawsem.pdb", type=str)
+    parser.add_argument("-t", "--dcd", help="trajectory file", default="movie.dcd", type=str)
+    parser.add_argument("-i", "--intermediate", help="intermediate pdb file", default="Last_Frame_process.pdb", type=str)
     parser.add_argument("-o", "--output", help="output last frame movie pdb file", default="Last_Frame.pdb", type=str)
-    parser.add_argument("-p", "--additionalPrint", action="store_true", help="enable additional print", default=False)
+    parser.add_argument("-f", "--fasta", help="fasta", default="crystal_structure.fasta", type=str)
+    #parser.add_argument("-p", "--additionalPrint", action="store_true", help="enable additional print", default=False)
     if args is None:
         args = parser.parse_args()
     else:
