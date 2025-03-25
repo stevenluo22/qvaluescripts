@@ -42,7 +42,7 @@ def openmmReadToFrustration(pdb_file_path, fasta, output):
     for line in pdb_lines:
         if line.startswith('HETATM') or line.startswith('ATOM'):
             residue_num = int(line[22:26].strip())
-            modified_line = line.replace('HETATM', 'ATOM  ', 1)  # Replace HETATM with ATOM
+            line = line.replace('HETATM', 'ATOM  ', 1)  # Replace HETATM with ATOM
             if residue_num == previous_residue:
                 residue_name = line[17:20].strip()
                 if residue_name in ["NGP", "IPR", "IGL"]:
