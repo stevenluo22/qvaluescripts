@@ -84,9 +84,9 @@ def main(args=None):
     parser = argparse.ArgumentParser(
         description="Extracting Last Frame from movie.pdb")
     parser.add_argument("-d", "--dir", help="directory to run the script", default="./", type=str)
-    parser.add_argument("-m", "--movie", help="movie pdb file", default="movie.pdb", type=str)
-    parser.add_argument("-b", "--pdb", help="template pdb file", default="crystal_structure-openmmawsem.pdb", type=str)
-    parser.add_argument("-t", "--dcd", help="trajectory file", default="movie.dcd", type=str)
+    parser.add_argument("-m", "--movie", help="movie pdb file", type=str)
+    parser.add_argument("-b", "--pdb", help="template pdb file", type=str)
+    parser.add_argument("-t", "--dcd", help="trajectory file", type=str)
     parser.add_argument("-i", "--intermediate", help="intermediate pdb file", default="Last_Frame_process.pdb", type=str)
     parser.add_argument("-o", "--output", help="output last frame movie pdb file", default="Last_Frame.pdb", type=str)
     parser.add_argument("-f", "--fasta", help="fasta", default="crystal_structure.fasta", type=str)
